@@ -1,14 +1,23 @@
 {
-  "name": "alfred-bot",
+  "name": "test-bot-webhook",
   "version": "1.0.0",
-  "description": "alfred-bot",
-  "main": "botkit-matching-basecode.js",
+  "description": "testing alfred on facebook",
+  "main": "alfred-facebook.js",
+  "dependencies": {
+    "botkit": "^0.2.0",
+    "profanity-cleanser": "^1.0.1",
+    "request": "^2.72.0",
+    "swearjar": "^0.1.2"
+  },
+  "engines": {
+    "node": "4.1.1",
+    "npm": "2.1.x"
+  },
+  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "app.js"
   },
   "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "botkit": "^0.1.1"
-  }
+  "license": "ISC"
 }
