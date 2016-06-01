@@ -60,6 +60,23 @@ controller.hears(['joke', 'pun'], 'message_received', function(bot, message) {
   }
 });
 
+//Chuck Norris jokes 
+controller.hears(['chuck', 'norris'], 'message_received', function(bot, message) {
+    var address = 'https://api.chucknorris.io/jokes/random';
+    if (matches[message.user]) {
+        request(address, function(err, result) {
+            var resultObject = JSON.parse(result.body);
+            bot.reply(matches[message.user], 'Matched user: ' + message.text);
+            bot.reply(matches[message.user], resultObject.value);
+    });
+  } else {
+        request(address, function(err, result) {
+            var resultObject = JSON.parse(result.body);
+            bot.reply(message, resultObject.value);
+    });
+  }
+});
+
 //Trivia game
 controller.hears('trivia', 'direct_message', function(bot, message) {
     bot.startConversation(message, function(err, convo) {
