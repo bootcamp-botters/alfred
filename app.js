@@ -230,34 +230,45 @@ controller.hears(['^keyword$', '^chat$', '^conversation$', '^friend$'], 'message
   });
 });
 
-var repliesProfane = ['Your mama teached you better!', 'Hey, be nice!', 'Come on! Stop it!'];
-//var replacementWords = ['🐷','🐩','🐺',':poop:','👻','🐙','🐸','🎃','🐫','🐯','🐗','🐭','🍓','👿','🚽','<(")','🐛','💀','🐔'];
+var repliesProfane = ['Your mama teached you better!', 'Hey, be nice!', 'Come on! Stop it!'];  // more/better replies?
 var replacementWords = [':)',':D',':poop:',':|','<(")'];  // find more?
-var jar = 0;
+var jar = {};
 
 function randomNumber (thingToCheck) {
   return Math.round(Math.random() * (thingToCheck.length - 1) + 0);
 }
 
+function jarOfShame(message, userJar) {
+  var index = randomNumber(repliesProfane);
+  // bot.reply(message, repliesProfane[index]);
+  bot.reply(message, repliesProfane[index] + '\nYou owe me ' + (userJar * 2) + '$');
+}
+
 controller.hears('.*', 'message_received', function(bot, message) {
-  var number = randomNumber(repliesProfane);
-  if (matches[message.user]) {
-    if (swearjar.profane(message.text)) {
-      bot.reply(message, repliesProfane[number]);
-      var replaceWords = randomNumber(replacementWords);
-      jar++;
-      bot.reply(message, 'You owe me ' + (jar * 5) + '$');
+  if (swearjar.profane(message.text)) {
+    
+    if (jar[message.user]) {   // JAR
+      jar[message.user] = jar[message.user] + 1;
+      jarOfShame(message, jar[message.user]);
+      console.log(jar)
+    } else {
+      jar[message.user] = 1;
+      jarOfShame(message, jar[message.user]);
+    }
+    
+    if (matches[message.user]) { // USER MATCH SWEAR TRANSFORMER
       var inputString = message.text.toLowerCase();
+      var replaceWords = randomNumber(replacementWords);
       var output = cleanser.replace(inputString, 'word', replacementWords[replaceWords]);
       bot.reply(matches[message.user], 'Matched user: ' + output);
+    } 
+  }
+  else {
+    if (matches[message.user]) {
+      bot.reply(matches[message.user], 'Matched user: ' + message.text);  // put nickname instead of matched user if available?
     }
     else {
-      bot.reply(matches[message.user], 'Matched user: ' + message.text);
+      bot.reply(message, "I'm sorry, I didn't understand... Say 'help' if you need to know more about me!");
     }
-  }
-  else if (swearjar.profane(message.text)) {        // FIX THE JAR -> PER USER
-    bot.reply(message, repliesProfane[number]);
-    jar++;
-    bot.reply(message, 'You owe me ' + (jar * 5) + '$');
   }
 });
