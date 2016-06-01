@@ -123,50 +123,63 @@ function secondTry(response, convo, responseTrivia) {
 }
 
 // MOVIES
-var moviesArray = ['Lord of the rings', 'Jurassic Park', 'Home Alone', 'Jaws', 'Halloween', 'Titanic'];
-
-var userPref = {};
+var moviesArray = ['Lord of the rings', 'Jurassic Park', 'Home Alone', 'Jaws', 'Halloween', 'Titanic', 'MORE THING 1', 'MORE THING 2', 'MORE THING 3', 'MORE THING 4', 'MORE THING 5'];
+var userVoted = {};
 
 function sendMovieTest(bot, message) {
-  var idx = Math.floor(Math.random() * (moviesArray.length - 1) + 1);
+  var idx = Math.floor(Math.random() * (moviesArray.length));   // random index of array
   var movie = moviesArray[idx];
   
-  var randomToken = '' + Math.random();
-  if (!userPostbacks[message.user]) {
-    userPostbacks[message.user] = [];
+  if (!userVoted[message.user]) {   // checks if userVoted for current user is created. 
+    userVoted[message.user] = [];   // if not, created it and give it an empty array 
   }
-  userPostbacks[message.user].push(randomToken);
-  console.log(userPostbacks);
-  var attachment = {
-    'type': 'template',
-    'payload': {
-      'template_type':'button',
-      'text': 'Do you like this movie: ' + movie + '?',
-      'buttons': [
-        {
-        'type':'postback',
-        'title':'Like!',
-        'payload': 'POSTBACK_like_movie_' + randomToken + '_' + idx
-        },
-        {
-        'type':'postback',
-        'title':'Dislike...',
-        'payload':'POSTBACK_dislike_movie_' + randomToken + '_' +idx
-        },
-        {
-          'type': 'postback',
-          'title': 'STOP',
-          'payload': 'POSTBACK_stop_movie_' + randomToken
-        }
-      ]
+  
+  if (userVoted[message.user].indexOf(idx) !== -1) {    // if the user already voted on the movie corresponding to the randomly generated index
+    if (userVoted[message.user].length === moviesArray.length) {   // if the userVoted array length is the same as the moviesArray, then no more movie is available for voting
+      bot.reply(message, 'No more questions, you\'re done!');   // tell the user and exit the function
+      return; 
     }
-  };
-  
-  
-  bot.reply(message, {
-      attachment: attachment,
-  });
+    sendMovieTest(bot, message);    // call sendMovieTest again to generate a new movie index
+  }  else {       // if the user never voted on the current movie, then display the vote choice
+    userVoted[message.user].push(idx);  // push that index number into the userVoted array to make sure it doesn't come back
+    
+    var randomToken = '' + Math.random();
+    if (!userPostbacks[message.user]) {
+      userPostbacks[message.user] = [];
+    }
+    userPostbacks[message.user].push(randomToken);
+    console.log(userPostbacks);
+    var attachment = {
+      'type': 'template',
+      'payload': {
+        'template_type':'button',
+        'text': 'Do you like this movie: ' + movie + '?',
+        'buttons': [
+          {
+          'type':'postback',
+          'title':'Like!',
+          'payload': 'POSTBACK_like_movie_' + randomToken + '_' + idx
+          },
+          {
+          'type':'postback',
+          'title':'Dislike...',
+          'payload':'POSTBACK_dislike_movie_' + randomToken + '_' +idx
+          },
+          {
+            'type': 'postback',
+            'title': 'STOP',
+            'payload': 'POSTBACK_stop_movie_' + randomToken
+          }
+        ]
+      }
+    };
+    
+    bot.reply(message, {
+        attachment: attachment,
+    });
+  }
 }
+
 controller.hears('movie-test', 'message_received', sendMovieTest);
 
 function checkToken(user, token) {
