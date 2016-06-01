@@ -2,7 +2,10 @@ var Botkit = require('botkit');
 var request = require('request');
 var swearjar = require('swearjar');
 var cleanser = require('profanity-cleanser');
-var mysql = require('mysql');
+var Sibyl = require('./sibyl');
+var prefs = new Sibyl();
+
+var userPostbacks = {};
 
 var controller = Botkit.facebookbot({
     access_token: process.env.page_access_token,
@@ -119,6 +122,117 @@ function secondTry(response, convo, responseTrivia) {
     }));
 }
 
+// MOVIES
+var moviesArray = ['Lord of the rings', 'Jurassic Park', 'Home Alone', 'Jaws', 'Halloween', 'Titanic'];
+
+var userPref = {};
+
+function sendMovieTest(bot, message) {
+  var idx = Math.floor(Math.random() * (moviesArray.length - 1) + 1);
+  var movie = moviesArray[idx];
+  
+  var randomToken = '' + Math.random();
+  if (!userPostbacks[message.user]) {
+    userPostbacks[message.user] = [];
+  }
+  userPostbacks[message.user].push(randomToken);
+  console.log(userPostbacks);
+  var attachment = {
+    'type': 'template',
+    'payload': {
+      'template_type':'button',
+      'text': 'Do you like this movie: ' + movie + '?',
+      'buttons': [
+        {
+        'type':'postback',
+        'title':'Like!',
+        'payload': 'POSTBACK_like_movie_' + randomToken + '_' + idx
+        },
+        {
+        'type':'postback',
+        'title':'Dislike...',
+        'payload':'POSTBACK_dislike_movie_' + randomToken + '_' +idx
+        },
+        {
+          'type': 'postback',
+          'title': 'STOP',
+          'payload': 'POSTBACK_stop_movie_' + randomToken
+        }
+      ]
+    }
+  };
+  
+  
+  bot.reply(message, {
+      attachment: attachment,
+  });
+}
+controller.hears('movie-test', 'message_received', sendMovieTest);
+
+function checkToken(user, token) {
+  if (!userPostbacks[user]) {
+    return false;
+  }
+  
+  var idx = userPostbacks[user].indexOf(token);
+  
+  if (idx === -1) {
+    return false;
+  }
+  
+  userPostbacks[user].splice(idx, 1);
+  return true;
+}
+
+controller.on('facebook_postback', function(bot, message) {
+  
+  var likeRegex = /^POSTBACK_like_movie_(.+)_(\d+)$/;
+  var dislikeRegex = /^POSTBACK_dislike_movie_(.+)_(\d+)$/;
+  var stopRegex = /^POSTBACK_stop_movie_(.+)$/;
+  
+  var matches = message.payload.match(likeRegex);
+  if (matches) {
+    var token = matches[1];
+    if (!checkToken(message.user, token)) {
+      return;
+    }
+    bot.reply(message, 'Ok, liked!');
+    prefs.recordLike(message.user, 'movie_'+matches[2]);
+    sendMovieTest(bot, message);
+  }
+  else {
+    matches = message.payload.match(dislikeRegex);
+    if (matches) {
+      var token = matches[1];
+      if (!checkToken(message.user, token)) {
+        return;
+      }
+      bot.reply(message, 'Ok, disliked!');
+      prefs.recordDislike(message.user, 'movie_'+matches[2])
+      sendMovieTest(bot, message);
+    }
+    else {
+      matches = message.payload.match(stopRegex);
+      if (matches) {
+        var token = matches[1];
+        if (!checkToken(message.user, token)) {
+          return;
+        }
+        bot.reply(message, 'OK, I will stop asking you for movie prefs!');
+      }
+    }
+  }
+  
+  var users = Object.keys(prefs.users);
+  
+  users.forEach(function(u1) {
+    users.forEach(function(u2) {
+      console.log('THE SIMILARITY BETWEEN ' + u1 + ' and ' + u2 + ' is :' + prefs.getSimilarityBetween(u1, u2));
+    })
+  })
+  
+});
+
 // middleware to cancel a conversation
 function cancellable(callback) {
   var stopPattern = {
@@ -143,7 +257,7 @@ function cancellable(callback) {
 
 var keywords = {};
 var matches = {};
-var suggestions = [];
+var dontChat = {};
 
 controller.hears('^stop$', 'message_received', function(bot, message) {
   if (matches[message.user]) {
@@ -163,12 +277,12 @@ controller.hears('^stop$', 'message_received', function(bot, message) {
           {
           'type':'postback',
           'title':'I have to go..',
-          'payload':'gtg'
+          'payload':'POSTBACK_chatstop_gtg'
           },
           {
           'type':'postback',
           'title':'Didn\'t like the user',
-          'payload':'dislikePerson'
+          'payload':'POSTBACK_chatstop_dislike_'+matched.user
           }
         ]
       }
@@ -181,11 +295,25 @@ controller.hears('^stop$', 'message_received', function(bot, message) {
 });
 
 controller.on('facebook_postback', function(bot, message) {
-  if (message.payload == 'gtg') {
+  var dislikeRegex = /^POSTBACK_chatstop_dislike_(\d+)$/;
+  
+  // or make it into an object
+  if (typeof message.payload !== 'string') {
+    return; 
+  }
+
+  if (message.payload == 'POSTBACK_chatstop_gtg') {
     bot.reply(message, 'Ok, I understand! :)');
-  } else if (message.payload == 'dislikePerson') {
-    bot.reply(message, 'Ok, I\'m going to make sure that you don\'t end up in a chat with this person again in the future.');
-    // SEND OTHER USER'S ID IN THE BANNED PERSONS COLUMN FOR THE CURRENT USER
+  } else {
+    var matches = message.payload.match(dislikeRegex)
+    if (matches && matches.length === 2) {
+      if (!dontChat[message.user]) {
+        dontChat[message.user] = [];
+      } 
+      dontChat[message.user].push(matches[1]);
+      
+      bot.reply(message, 'Ok, I\'m going to make sure that you don\'t end up in a chat with this person again in the future.');
+    }
   }
 });
 
@@ -203,7 +331,7 @@ controller.hears(['^keyword$', '^chat$', '^conversation$', '^friend$'], 'message
 
       convo.on('end', function(convo) {
         if (convo.status == 'completed') {
-          var userKeyword = convo.extractResponse('keyword');
+          var userKeyword = convo.extractResponse('keyword').toLowerCase();
             bot.reply(message, 'Alright, please wait while I find you a matching user to chat with!');
               if (keywords[userKeyword]) {
                 var matchedMessage = keywords[userKeyword];
@@ -219,7 +347,6 @@ controller.hears(['^keyword$', '^chat$', '^conversation$', '^friend$'], 'message
               }
               else {
                 keywords[userKeyword] = message;
-                suggestions.push(userKeyword);
               }
         } else {
           // this happens if the conversation ended prematurely for some reason
@@ -240,7 +367,6 @@ function randomNumber (thingToCheck) {
 
 function jarOfShame(message, userJar) {
   var index = randomNumber(repliesProfane);
-  // bot.reply(message, repliesProfane[index]);
   bot.reply(message, repliesProfane[index] + '\nYou owe me ' + (userJar * 2) + '$');
 }
 
@@ -250,25 +376,32 @@ controller.hears('.*', 'message_received', function(bot, message) {
     if (jar[message.user]) {   // JAR
       jar[message.user] = jar[message.user] + 1;
       jarOfShame(message, jar[message.user]);
-      console.log(jar)
+      
+      if (matches[message.user]) {  // if matched, also send censored message
+        var inputString = message.text.toLowerCase();
+        var replaceWords = randomNumber(replacementWords);
+        var output = cleanser.replace(inputString, 'word', replacementWords[replaceWords]);
+        bot.reply(matches[message.user], 'Matched user: ' + output);
+      }
+      
     } else {
       jar[message.user] = 1;
       jarOfShame(message, jar[message.user]);
+      
+      if (matches[message.user]) {  // if matched, also send censored message
+        var inputString = message.text.toLowerCase();
+        var replaceWords = randomNumber(replacementWords);
+        var output = cleanser.replace(inputString, 'word', replacementWords[replaceWords]);
+        bot.reply(matches[message.user], 'Matched user: ' + output);
+      }
     }
-    
-    if (matches[message.user]) { // USER MATCH SWEAR TRANSFORMER
-      var inputString = message.text.toLowerCase();
-      var replaceWords = randomNumber(replacementWords);
-      var output = cleanser.replace(inputString, 'word', replacementWords[replaceWords]);
-      bot.reply(matches[message.user], 'Matched user: ' + output);
-    } 
   }
   else {
     if (matches[message.user]) {
       bot.reply(matches[message.user], 'Matched user: ' + message.text);  // put nickname instead of matched user if available?
     }
-    else {
-      bot.reply(message, "I'm sorry, I didn't understand... Say 'help' if you need to know more about me!");
+    else if (!/^POSTBACK_/.test(message.text)) {
+      bot.reply(message, "I'm sorry, I didn't understand... Say 'help' if you need to know more about me! DEBUG " + JSON.stringify(message));
     }
   }
 });
