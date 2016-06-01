@@ -2,6 +2,7 @@ var Botkit = require('botkit');
 var request = require('request');
 var swearjar = require('swearjar');
 var cleanser = require('profanity-cleanser');
+var mysql = require('mysql');
 
 var controller = Botkit.facebookbot({
         access_token: process.env.page_access_token,
@@ -59,30 +60,59 @@ controller.hears(['joke', 'pun'], 'message_received', function(bot, message) {
   }
 });
 
-//Trivia game
-controller.hears('trivia', 'message_received', function(bot, message) {
-    bot.startConversation(message, function(err, convo) {
-        var address = 'http://jservice.io/api/random';
+//Chuck Norris jokes 
+controller.hears(['chuck', 'norris', 'noris'], 'message_received', function(bot, message) {
+    var address = 'https://api.chucknorris.io/jokes/random';
+    if (matches[message.user]) {
         request(address, function(err, result) {
             var resultObject = JSON.parse(result.body);
-            var question = resultObject[0].question;
-            var responseTrivia = resultObject[0].answer;
-            convo.ask('Here is your question: ' + '*' + question + '*' + '. You have 3 chances!', function(response, convo) {
-                if (response.text === responseTrivia || response.text === responseTrivia.toLowerCase()) {
-                    convo.say('Congratulations, you found the right answer!');
-                    convo.next();
-                } else {
-                    secondTry(response, convo, responseTrivia);
-                    convo.next();
+            bot.reply(matches[message.user], 'Matched user: ' + message.text);
+            bot.reply(matches[message.user], resultObject.value);
+    });
+  } else {
+        request(address, function(err, result) {
+            var resultObject = JSON.parse(result.body);
+            bot.reply(message, resultObject.value);
+    });
+  }
+});
+
+//Trivia game
+controller.hears('trivia', 'direct_message', function(bot, message) {
+    bot.startConversation(message, function(err, convo) {
+            var address = 'http://jservice.io/api/random';
+            request(address, function(err, result) {
+                    if (err) {
+                        console.log(err)
+                        convo.say('Sorry, there was a problem, please try again.');
+                    }
+                    else {
+                        var resultObject = JSON.parse(result.body);
+                        var question = resultObject[0].question;
+                        var responseTrivia = resultObject[0].answer;
+                        if (responseTrivia.indexOf('<i>') != -1) {
+                            responseTrivia = responseTrivia.slice(3).split('</i>')[0];
+                        } else if(responseTrivia.indexOf('\\') != -1) {
+                            responseTrivia = responseTrivia.replace('\\', '');
+                        }
+                    convo.ask('Here is your question: ' + '*' + question + '*' + '. You have 3 chances!', cancellable(function(response, convo) {
+                        if (response.text === responseTrivia || response.text === responseTrivia.toLowerCase()) {
+                            convo.say('Congratulations, you found the right answer!');
+                            convo.next();
+                        }
+                        else {
+                            secondTry(response, convo, responseTrivia);
+                            convo.next();
+                        }
+                    }));
                 }
             });
-        });
-    })
+    });
 });
 
 var counter = 2;
 function secondTry(response, convo, responseTrivia) {
-    convo.ask('Wrong answer. Your remaining chances: ' + counter, function(response, convo) {
+    convo.ask('Wrong answer. Your remaining chances: ' + counter, cancellable(function(response, convo) {
         counter --;
         if (response.text === responseTrivia || response.text === responseTrivia.toLowerCase() && counter > 0) {
             convo.say('Congratulations, you found the right answer!');
@@ -95,7 +125,7 @@ function secondTry(response, convo, responseTrivia) {
             counter = 2;
             convo.next();
         }
-    });
+    }));
 }
 
 function cancellable(callback) {

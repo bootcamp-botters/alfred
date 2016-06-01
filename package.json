@@ -5,6 +5,7 @@
   "main": "alfred-facebook.js",
   "dependencies": {
     "botkit": "^0.2.0",
+    "mysql": "^2.10.2",
     "profanity-cleanser": "^1.0.1",
     "request": "^2.72.0",
     "swearjar": "^0.1.2"
