@@ -61,7 +61,7 @@ controller.hears(['joke', 'pun'], 'message_received', function(bot, message) {
 });
 
 //Chuck Norris jokes 
-controller.hears(['chuck', 'norris'], 'message_received', function(bot, message) {
+controller.hears(['chuck', 'norris', 'noris'], 'message_received', function(bot, message) {
     var address = 'https://api.chucknorris.io/jokes/random';
     if (matches[message.user]) {
         request(address, function(err, result) {
