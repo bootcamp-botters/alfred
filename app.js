@@ -5,35 +5,25 @@ var cleanser = require('profanity-cleanser');
 var mysql = require('mysql');
 
 var controller = Botkit.facebookbot({
-        access_token: process.env.page_access_token,
-        verify_token: process.env.verify_token,
+    access_token: process.env.page_access_token,
+    verify_token: process.env.verify_token,
 });
 
-console.log("ACCESS TOKEN: " + process.env.page_access_token);
-console.log("VERIFY TOKEN: " + process.env.verify_token);
-
-//Important to set the dictionaries for cleanser
+// Important to set the dictionaries for cleanser
 cleanser.setLocale(); 
 
 var bot = controller.spawn({
 });
 
-// if you are already using Express, you can use your own server instance...
-// see "Use BotKit with an Express web server"
+// SERVER
 controller.setupWebserver(process.env.PORT, function(err,webserver) {
   controller.createWebhookEndpoints(controller.webserver, bot, function() {
       console.log('This bot is online!!!');
   });
 });
 
-// this is triggered when a user clicks the send-to-messenger plugin
-controller.on('facebook_optin', function(bot, message) {
-    bot.reply(message, 'Welcome to my app!');
-
-});
-
 // user said hello
-controller.hears('hello', 'message_received', function(bot, message) {
+controller.hears('hello', 'message_received', function(bot, message) {  // NOTE: Change dialog, add user nickname question linked with database
     if (matches[message.user]) {
     bot.reply(matches[message.user], 'Matched user: ' + message.text);
   } else {
@@ -42,7 +32,7 @@ controller.hears('hello', 'message_received', function(bot, message) {
 });
 
 //The jokessss
-controller.hears(['joke', 'pun'], 'message_received', function(bot, message) {
+controller.hears(['joke', 'pun', 'dad joke'], 'message_received', function(bot, message) {
     if (matches[message.user]) {
         var address = 'http://tambal.azurewebsites.net/joke/random';
         request(address, function(err, result) {
@@ -68,45 +58,46 @@ controller.hears(['chuck', 'norris', 'noris'], 'message_received', function(bot,
             var resultObject = JSON.parse(result.body);
             bot.reply(matches[message.user], 'Matched user: ' + message.text);
             bot.reply(matches[message.user], resultObject.value);
-    });
-  } else {
+        });
+    } else {
         request(address, function(err, result) {
             var resultObject = JSON.parse(result.body);
             bot.reply(message, resultObject.value);
-    });
-  }
+        });
+    }
 });
 
 //Trivia game
-controller.hears('trivia', 'direct_message', function(bot, message) {
+controller.hears('trivia', 'message_received', function(bot, message) {
     bot.startConversation(message, function(err, convo) {
-            var address = 'http://jservice.io/api/random';
-            request(address, function(err, result) {
-                    if (err) {
-                        console.log(err)
-                        convo.say('Sorry, there was a problem, please try again.');
+        var address = 'http://jservice.io/api/random';
+        request(address, function(err, result) {
+            if (err) {
+                console.log(err)
+                convo.say('Sorry, there was a problem, please try again.');
+            }
+            else {
+                var resultObject = JSON.parse(result.body);
+                var question = resultObject[0].question;
+                var responseTrivia = resultObject[0].answer;
+                if (responseTrivia.indexOf('<i>') != -1) {
+                    responseTrivia = responseTrivia.slice(3).split('</i>')[0];
+                } else if (responseTrivia.indexOf('\\') != -1) {
+                    responseTrivia = responseTrivia.replace('\\', '');
+                }
+                
+                convo.ask('Here is your question: ' + '*' + question + '*' + '. You have 3 chances!', cancellable(function(response, convo) {
+                    if (response.text === responseTrivia || response.text === responseTrivia.toLowerCase()) {
+                        convo.say('Congratulations, you found the right answer!');
+                        convo.next();
                     }
                     else {
-                        var resultObject = JSON.parse(result.body);
-                        var question = resultObject[0].question;
-                        var responseTrivia = resultObject[0].answer;
-                        if (responseTrivia.indexOf('<i>') != -1) {
-                            responseTrivia = responseTrivia.slice(3).split('</i>')[0];
-                        } else if(responseTrivia.indexOf('\\') != -1) {
-                            responseTrivia = responseTrivia.replace('\\', '');
-                        }
-                    convo.ask('Here is your question: ' + '*' + question + '*' + '. You have 3 chances!', cancellable(function(response, convo) {
-                        if (response.text === responseTrivia || response.text === responseTrivia.toLowerCase()) {
-                            convo.say('Congratulations, you found the right answer!');
-                            convo.next();
-                        }
-                        else {
-                            secondTry(response, convo, responseTrivia);
-                            convo.next();
-                        }
-                    }));
-                }
-            });
+                        secondTry(response, convo, responseTrivia);
+                        convo.next();
+                    }
+                }));
+            }
+        });
     });
 });
 
@@ -128,6 +119,7 @@ function secondTry(response, convo, responseTrivia) {
     }));
 }
 
+// middleware to cancel a conversation
 function cancellable(callback) {
   var stopPattern = {
     pattern: '^(cancel|stop)$',
@@ -238,10 +230,10 @@ controller.hears(['^keyword$', '^chat$', '^conversation$', '^friend$'], 'message
   });
 });
 
-var repliesProfane = ['Your mama teached you better!', 'Hey, be nice!', 'Come on! Stop it!']
+var repliesProfane = ['Your mama teached you better!', 'Hey, be nice!', 'Come on! Stop it!'];
 //var replacementWords = ['🐷','🐩','🐺',':poop:','👻','🐙','🐸','🎃','🐫','🐯','🐗','🐭','🍓','👿','🚽','<(")','🐛','💀','🐔'];
-var replacementWords = [':)',':D',':poop:',':|'];
-var jar= 0;
+var replacementWords = [':)',':D',':poop:',':|','<(")'];  // find more?
+var jar = 0;
 
 function randomNumber (thingToCheck) {
   return Math.round(Math.random() * (thingToCheck.length - 1) + 0);
@@ -256,17 +248,14 @@ controller.hears('.*', 'message_received', function(bot, message) {
       jar++;
       bot.reply(message, 'You owe me ' + (jar * 5) + '$');
       var inputString = message.text.toLowerCase();
-      console.log(inputString, 'the word after lowercase')
       var output = cleanser.replace(inputString, 'word', replacementWords[replaceWords]);
-      console.log(replacementWords[replaceWords], 'replacementWords[replaceWords]')
-      console.log(output, 'output')
       bot.reply(matches[message.user], 'Matched user: ' + output);
     }
     else {
       bot.reply(matches[message.user], 'Matched user: ' + message.text);
     }
   }
-  else if (swearjar.profane(message.text)) {
+  else if (swearjar.profane(message.text)) {        // FIX THE JAR -> PER USER
     bot.reply(message, repliesProfane[number]);
     jar++;
     bot.reply(message, 'You owe me ' + (jar * 5) + '$');
