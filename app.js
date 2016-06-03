@@ -79,6 +79,7 @@ controller.hears(['chuck', 'norris', 'noris'], 'message_received', function(bot,
             var resultObject = JSON.parse(result.body);
             bot.reply(userMatch[message.user], 'Matched user: ' + message.text);
             bot.reply(userMatch[message.user], resultObject.value);
+            bot.reply(message, resultObject.value);
         });
     } else {
         request(address, function(err, result) {
