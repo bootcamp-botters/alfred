@@ -157,7 +157,8 @@ var thingsArray = [
   {name: 'Hip Hop music', url: 'http://az616578.vo.msecnd.net/files/2016/02/27/635921315531991253560246710_publicenemy.jpg'},
   {name: 'Family Guy', url: 'http://www.kdoc.tv/wp-content/uploads/2016/03/fam.jpg'},
   {name: 'Google', url: 'http://www.enterprisesaskatchewan.ca/wp-content/uploads/2016/02/Is-Google-Searching-for-the-Next-Big-Thing1.jpg'},
-  {name: 'Fifty Shades of Grey', url: 'http://z1035.com/wp-content/uploads/2016/01/fifty-shades-grey-.jpg'}
+  {name: 'Fifty Shades of Grey', url: 'http://z1035.com/wp-content/uploads/2016/01/fifty-shades-grey-.jpg'},
+  {name: 'Lady Gaga', url: 'http://www.billboard.com/files/styles/article_main_image/public/media/lady-gaga-2015-red-carpet-headshot-billboard-650.jpg'}
 ];
 
 var userVoted = {};
