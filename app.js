@@ -25,12 +25,30 @@ controller.setupWebserver(process.env.PORT, function(err,webserver) {
   });
 });
 
+var userFirstRun = {};
+
 // user said hello
-controller.hears('hello', 'message_received', function(bot, message) {  // NOTE: Change dialog, add user nickname question linked with database
-    if (userMatch[message.user]) {
+controller.hears(['hello', '^hi$', '^yo$', '^hey$', 'what\'s up'], 'message_received', function(bot, message) {  // NOTE: Change dialog, add user nickname question linked with database
+  if (userMatch[message.user]) {
+    bot.reply(userMatch[message.user], 'Matched user: ' + message.text);
+  } else if (!userFirstRun[message.user]) {
+    userFirstRun[message.user] = 'done';
+    bot.reply(message, "Hey there, my name is Alfred. Nice to meet you! Let's have some fun together. Try saying 'quiz', 'chat' or 'help'!");
+  } else {
+    bot.reply(message, 'Hello, nice to see you again!');
+  }
+});
+
+// HELP SECTION
+controller.hears('^help$', 'message_received', function(bot, message) {
+  if (userMatch[message.user]) {
     bot.reply(userMatch[message.user], 'Matched user: ' + message.text);
   } else {
-    bot.reply(message, 'Hey there.');
+    bot.startConversation(message,function(err,convo) {
+      convo.say("Here are my main commands: \n\n• Say 'quiz' or 'test' if you want to answer some questions to help me find you a chat friend \n\n• Say 'chat' or 'match' if you want to chat with someone");
+      convo.say("• Say 'stop' if you want to exit a dialogue \n\n• Say 'trivia' if you want to play a game! \n\n• I am also funny, sometimes. Try 'joke' or 'Chuck Norris'. \n\nThat's it, hope it helps!");
+      // convo.stop();
+    });
   }
 });
 
