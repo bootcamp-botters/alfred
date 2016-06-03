@@ -47,7 +47,6 @@ controller.hears('^help$', 'message_received', function(bot, message) {
     bot.startConversation(message,function(err,convo) {
       convo.say("Here are my main commands: \n\n• Say 'quiz' or 'test' if you want to answer some questions to help me find you a chat friend \n\n• Say 'chat' or 'match' if you want to chat with someone");
       convo.say("• Say 'stop' if you want to exit a dialogue \n\n• Say 'trivia' if you want to play a game! \n\n• I am also funny, sometimes. Try 'joke' or 'Chuck Norris'. \n\nThat's it, hope it helps!");
-      // convo.stop();
     });
   }
 });
@@ -79,6 +78,7 @@ controller.hears(['chuck', 'norris', 'noris'], 'message_received', function(bot,
             var resultObject = JSON.parse(result.body);
             bot.reply(userMatch[message.user], 'Matched user: ' + message.text);
             bot.reply(userMatch[message.user], resultObject.value);
+            bot.reply(message, resultObject.value);
         });
     } else {
         request(address, function(err, result) {
@@ -198,7 +198,14 @@ function sendTest(bot, message) {
   }
 }
 
-controller.hears(['test', 'quiz', 'test', 'preferences'], 'message_received', sendTest);
+controller.hears(['test', 'quiz', 'test', 'preferences'], 'message_received', function(bot, message) {
+  if (userMatch[message.user]) {
+    bot.reply(userMatch[message.user], 'Matched user: ' + message.text);
+  } 
+  else {
+    sendTest(bot, message);
+  }
+});
 
 function checkToken(user, token) {
   if (!userPostbacks[user]) {
