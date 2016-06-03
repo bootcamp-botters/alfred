@@ -199,7 +199,14 @@ function sendTest(bot, message) {
   }
 }
 
-controller.hears(['test', 'quiz', 'test', 'preferences'], 'message_received', sendTest);
+controller.hears(['test', 'quiz', 'test', 'preferences'], 'message_received', function(bot, message) {
+  if (userMatch[message.user]) {
+    bot.reply(userMatch[message.user], 'Matched user: ' + message.text);
+  } 
+  else {
+    sendTest(bot, message);
+  }
+});
 
 function checkToken(user, token) {
   if (!userPostbacks[user]) {
