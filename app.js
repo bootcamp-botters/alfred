@@ -141,7 +141,25 @@ function secondTry(response, convo, responseTrivia) {
 }
 
 // PREFERENCES QUIZ
-var thingsArray = ['Lord of the rings', 'Breaking Bad', 'Jurassic Park', 'Electro music', 'Pokemon', 'Titanic', 'Donald Trump', 'Harry Potter', 'Tom Cruise', 'Apple', 'The Big Bang Theory', 'Hip Hop music', 'Family Guy', 'Google', 'Fifty Shades of Grey'];
+
+var thingsArray = [
+  {name:'Lord of the rings', url: 'http://cdn.bgr.com/2014/12/lord-of-the-rings-1-the-fellowship-of-the-ring-movie-poster-2001-1020195991.jpg'},
+  {name: 'Breaking Bad', url: 'http://www.ultrahdtv.net/wp-content/uploads/2013/01/Breaking-Bad.jpg'},
+  {name: 'Jurassic Park', url: 'http://arvernebythesea.com/wp-content/uploads/2015/07/jurrasic-park.png'},
+  {name: 'Electro music', url: 'http://wallpoper.com/images/00/42/41/82/music-daft_00424182.jpg'},
+  {name: 'Pokemon', url: 'http://www.pokemon20.com/assets/img/global/og-shareimg.jpg'},
+  {name: 'Titanic', url: 'http://static3.techinsider.io/image/56bcafeb6e97c631008b69e0-3179-2384/im%20on%20top%20of%20the%20world%20titanic.jpg'},
+  {name: 'Donald Trump', url: 'http://c10.nrostatic.com/sites/default/files/styles/original_image_with_cropping/public/uploaded/donald-trump-grow-up.jpg?itok=n1PW3Myr'},
+  {name: 'Harry Potter', url: 'http://nerdist.com/wp-content/uploads/2015/06/Wizarding-World-of-Harry-Potter.jpg'},
+  {name: 'Tom Cruise', url: 'http://cdn.mos.cms.futurecdn.net/85162ce40f2cbd0f3125fa484902af4c-970-80.jpg'},
+  {name: 'Apple', url: 'http://www.returnofkings.com/wp-content/uploads/2014/03/apple-icon-apple.jpg'},
+  {name: 'The Big Bang Theory', url: 'http://www.cutcabletoday.com/wp-content/uploads/2015/09/Big-Bang-Theory.jpg'},
+  {name: 'Hip Hop music', url: 'http://az616578.vo.msecnd.net/files/2016/02/27/635921315531991253560246710_publicenemy.jpg'},
+  {name: 'Family Guy', url: 'http://www.kdoc.tv/wp-content/uploads/2016/03/fam.jpg'},
+  {name: 'Google', url: 'http://www.enterprisesaskatchewan.ca/wp-content/uploads/2016/02/Is-Google-Searching-for-the-Next-Big-Thing1.jpg'},
+  {name: 'Fifty Shades of Grey', url: 'http://z1035.com/wp-content/uploads/2016/01/fifty-shades-grey-.jpg'}
+];
+
 var userVoted = {};
 
 function sendTest(bot, message) {
@@ -170,23 +188,29 @@ function sendTest(bot, message) {
     var attachment = {
       'type': 'template',
       'payload': {
-        'template_type':'button',
-        'text': 'Do you like: ' + movie + '?',
-        'buttons': [
+        'template_type': 'generic',
+        'elements':[
           {
-          'type':'postback',
-          'title':'Like!',
-          'payload': 'POSTBACK_like_movie_' + randomToken + '_' + idx
-          },
-          {
-          'type':'postback',
-          'title':'Dislike...',
-          'payload':'POSTBACK_dislike_movie_' + randomToken + '_' +idx
-          },
-          {
-            'type': 'postback',
-            'title': 'STOP',
-            'payload': 'POSTBACK_stop_movie_' + randomToken
+            'title': movie.name,
+            'image_url': movie.url,
+            'subtitle': 'Do you like this ?',
+            'buttons': [
+              {
+              'type':'postback',
+              'title':'Like!',
+              'payload': 'POSTBACK_like_movie_' + randomToken + '_' + idx
+              },
+              {
+              'type':'postback',
+              'title':'Dislike...',
+              'payload':'POSTBACK_dislike_movie_' + randomToken + '_' +idx
+              },
+              {
+                'type': 'postback',
+                'title': 'STOP',
+                'payload': 'POSTBACK_stop_movie_' + randomToken
+              }
+            ]
           }
         ]
       }
