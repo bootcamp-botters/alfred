@@ -25,15 +25,19 @@ controller.setupWebserver(process.env.PORT, function(err,webserver) {
   });
 });
 
+var userFirstRun = {};
+
 // user said hello
-controller.hears('hello', 'message_received', function(bot, message) {  // NOTE: Change dialog, add user nickname question linked with database
-    if (userMatch[message.user]) {
+controller.hears(['hello', '^hi$', '^yo$', '^hey$', 'what\'s up'], 'message_received', function(bot, message) {  // NOTE: Change dialog, add user nickname question linked with database
+  if (userMatch[message.user]) {
     bot.reply(userMatch[message.user], 'Matched user: ' + message.text);
+  } else if (!userFirstRun[message.user]) {
+    userFirstRun[message.user] = 'done';
+    bot.reply(message, "Hey there, my name is Alfred. Nice to meet you! Let's have some fun together. Try saying 'quiz', 'chat' or 'help'!");
   } else {
-    bot.reply(message, 'Hey there.');
+    bot.reply(message, 'Hello, nice to see you again!');
   }
 });
-
 
 // HELP SECTION
 controller.hears('^help$', 'message_received', function(bot, message) {
