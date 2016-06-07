@@ -13,3 +13,7 @@ You are free to use Alfred for your projects!
 ##The technologies
 
 We used the NPM modules Request to make requests to multiple APIs, Swearjar and Profanity Cleanser for moderate NLP, and Sybil for a preferences based matching process.
+
+##Try it!
+
+[Talk to Alfred right now!](https://www.facebook.com/Alfred-205296949863677/)
